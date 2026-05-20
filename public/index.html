@@ -31,6 +31,7 @@
       color: var(--text);
       min-height: 100vh;
       padding: 1rem;
+      transition: background-color 0.25s, color 0.25s;
     }
 
     .container { max-width: 700px; margin: 0 auto; }
@@ -167,9 +168,44 @@
       h1 { font-size: 1.4rem; }
       .card, .result-card { padding: 1.125rem; }
     }
+
+    /* ── Dark mode ── */
+    [data-theme="dark"] {
+      --bg:           #0f172a;
+      --white:        #1e293b;
+      --text:         #f1f5f9;
+      --muted:        #94a3b8;
+      --border:       #334155;
+      --accent-soft:  #1e1b4b;
+      --accent-mid:   #3730a3;
+      --red-soft:     #450a0a;
+      --red-border:   #7f1d1d;
+      --red:          #f87171;
+      --amber-soft:   #1c1003;
+      --amber-border: #78350f;
+      --amber-text:   #fde68a;
+    }
+    [data-theme="dark"] .badge-summary   { background: #2e1065; }
+    [data-theme="dark"] .badge-questions { background: #052e16; }
+    [data-theme="dark"] .q-answer        { color: var(--text); }
+    [data-theme="dark"] .card,
+    [data-theme="dark"] .result-card     { transition: background-color 0.25s, border-color 0.25s; }
+
+    /* ── Theme toggle button ── */
+    #theme-toggle {
+      position: fixed; top: 1rem; right: 1rem; z-index: 100;
+      width: 38px; height: 38px;
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 50%; cursor: pointer; font-size: 1.1rem;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      transition: background-color 0.25s, border-color 0.25s;
+    }
+    #theme-toggle:hover { border-color: var(--accent); }
   </style>
 </head>
 <body>
+<button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
 <div class="container">
 
   <header>
@@ -201,7 +237,7 @@
     <div class="loading-inner">
       <div class="spinner"></div>
       <div class="loading-status" id="loading-status">Uploading PDF…</div>
-      <div class="loading-hint">Usually takes 10–20 seconds</div>
+      <div class="loading-hint">Usually takes a couple of seconds</div>
     </div>
   </div>
 
@@ -339,6 +375,19 @@
 
   function show(id) { document.getElementById(id).style.display = 'block'; }
   function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+  // ── Theme toggle ──
+  const btn = document.getElementById('theme-toggle');
+  function applyTheme(dark) {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    btn.textContent = dark ? '☀️' : '🌙';
+  }
+  function toggleTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+    applyTheme(!isDark);
+  }
+  applyTheme(localStorage.getItem('theme') === 'dark');
 </script>
 </body>
 </html>
