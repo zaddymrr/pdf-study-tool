@@ -3,7 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const multer  = require('multer');
 const pdf     = require('pdf-parse');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 const path    = require('path');
 
 const app = express();
@@ -19,11 +19,7 @@ const upload = multer({
   },
 });
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({
-  model: 'gemini-2.0-flash',
-  systemInstruction: 'You are a focused study assistant. Extract only what matters for exams. Be concise.',
-});
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const MAX_CHARS = 80_000;
 
 // ── Static frontend ──
@@ -49,8 +45,17 @@ app.post('/api/analyze', upload.single('pdf'), async (req, res) => {
     const truncated = text.length > MAX_CHARS;
     if (truncated) text = text.slice(0, MAX_CHARS);
 
-    // Call Gemini
-    const prompt =
+    // Call Groq
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a focused study assistant. Extract only what matters for exams. Be concise.',
+        },
+        {
+          role: 'user',
+          content:
 `Analyze this study material and respond using EXACTLY this format — no deviations:
 
 SUMMARY_START
@@ -78,10 +83,12 @@ QUESTIONS_END
 
 Material:
 
-${text}`;
+${text}`,
+        },
+      ],
+    });
 
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text();
+    const raw = completion.choices[0].message.content;
 
     // Parse summary
     const summaryBlock = (raw.match(/SUMMARY_START\s*([\s\S]*?)\s*SUMMARY_END/) || [])[1] || '';
