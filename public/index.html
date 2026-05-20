@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Study Tool</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent:       #4f46e5;
+      --accent-dark:  #4338ca;
+      --accent-soft:  #eef2ff;
+      --accent-mid:   #c7d2fe;
+      --text:         #111827;
+      --muted:        #6b7280;
+      --border:       #e5e7eb;
+      --bg:           #f9fafb;
+      --white:        #ffffff;
+      --red:          #dc2626;
+      --red-soft:     #fef2f2;
+      --red-border:   #fecaca;
+      --amber-soft:   #fffbeb;
+      --amber-border: #fde68a;
+      --amber-text:   #92400e;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    .container { max-width: 700px; margin: 0 auto; }
+
+    /* ── Header ── */
+    header { text-align: center; padding: 2.5rem 0 2rem; }
+    .logo {
+      width: 52px; height: 52px;
+      background: var(--accent); border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; margin: 0 auto 1rem;
+    }
+    h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 0.4rem; }
+    .subtitle { color: var(--muted); font-size: 0.95rem; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem;
+    }
+    .card-label {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.875rem;
+    }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      position: relative; border: 2px dashed var(--border); border-radius: 12px;
+      padding: 2.5rem 1rem; text-align: center; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .drop-zone:hover, .drop-zone.over { border-color: var(--accent); background: var(--accent-soft); }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .drop-icon { font-size: 2rem; margin-bottom: 0.6rem; }
+    .drop-primary { font-weight: 600; margin-bottom: 0.25rem; }
+    .drop-hint { font-size: 0.85rem; color: var(--muted); }
+
+    .file-pill {
+      display: none; align-items: center; gap: 0.625rem;
+      margin-top: 0.875rem; padding: 0.625rem 0.875rem;
+      background: var(--accent-soft); border: 1px solid var(--accent-mid);
+      border-radius: 8px; font-size: 0.875rem;
+    }
+    .file-pill.visible { display: flex; }
+    .file-pill-name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-pill-remove { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 1rem; flex-shrink: 0; }
+
+    /* ── Alerts ── */
+    .error {
+      display: none; margin-top: 0.75rem; padding: 0.75rem 0.875rem;
+      background: var(--red-soft); border: 1px solid var(--red-border);
+      border-radius: 8px; color: var(--red); font-size: 0.875rem;
+    }
+    .warn {
+      display: none; padding: 0.6rem 0.875rem; margin-bottom: 1rem;
+      background: var(--amber-soft); border: 1px solid var(--amber-border);
+      border-radius: 8px; color: var(--amber-text); font-size: 0.8rem;
+    }
+
+    /* ── Button ── */
+    .btn {
+      display: block; width: 100%; padding: 0.75rem; margin-top: 1rem;
+      background: var(--accent); color: #fff; border: none; border-radius: 10px;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn:hover:not(:disabled) { background: var(--accent-dark); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-ghost {
+      background: transparent; color: var(--accent);
+      border: 1.5px solid var(--accent);
+    }
+    .btn-ghost:hover:not(:disabled) { background: var(--accent-soft); }
+
+    /* ── Loading ── */
+    #loading-card { display: none; }
+    .loading-inner { text-align: center; padding: 2.5rem 0; }
+    .spinner {
+      width: 42px; height: 42px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.75s linear infinite; margin: 0 auto 1.25rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-status { font-weight: 600; margin-bottom: 0.4rem; }
+    .loading-hint { font-size: 0.85rem; color: var(--muted); }
+
+    /* ── Results ── */
+    #results-section { display: none; }
+    .result-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem;
+    }
+    .result-header { display: flex; align-items: center; gap: 0.625rem; margin-bottom: 1.25rem; }
+    .result-badge {
+      width: 34px; height: 34px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+    }
+    .badge-summary   { background: #ede9fe; }
+    .badge-questions { background: #dcfce7; }
+    .result-header h2 { font-size: 1rem; font-weight: 700; }
+
+    /* Summary */
+    #summary-content ul { padding-left: 1.25rem; }
+    #summary-content li { margin-bottom: 0.5rem; line-height: 1.65; font-size: 0.9375rem; }
+
+    /* Questions accordion */
+    .q-item {
+      border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; margin-bottom: 0.625rem; cursor: pointer;
+    }
+    .q-item:last-child { margin-bottom: 0; }
+    .q-head { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.875rem 1rem; transition: background 0.1s; }
+    .q-head:hover { background: var(--bg); }
+    .q-num {
+      width: 24px; height: 24px; flex-shrink: 0;
+      background: var(--accent); color: #fff; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 700; margin-top: 1px;
+    }
+    .q-text { flex: 1; font-weight: 600; font-size: 0.9375rem; line-height: 1.5; }
+    .q-chevron { color: var(--muted); font-size: 0.7rem; flex-shrink: 0; margin-top: 5px; transition: transform 0.2s; }
+    .q-item.open .q-chevron { transform: rotate(180deg); }
+    .q-answer {
+      display: none; border-top: 1px solid var(--border);
+      padding: 0.875rem 1rem 0.875rem 3.125rem;
+      font-size: 0.9rem; line-height: 1.65; color: #374151;
+    }
+    .q-item.open .q-answer { display: block; }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 1.4rem; }
+      .card, .result-card { padding: 1.125rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">📚</div>
+    <h1>PDF Study Tool</h1>
+    <p class="subtitle">Upload a lecture PDF → instant summary + exam questions</p>
+  </header>
+
+  <!-- Upload -->
+  <div class="card" id="upload-card">
+    <div class="card-label">Upload PDF</div>
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" accept="application/pdf" />
+      <div class="drop-icon">📄</div>
+      <div class="drop-primary">Drop your PDF here</div>
+      <div class="drop-hint">or click to browse &nbsp;·&nbsp; max 20 MB</div>
+    </div>
+    <div class="file-pill" id="file-pill">
+      <span>📄</span>
+      <span class="file-pill-name" id="file-pill-name"></span>
+      <button class="file-pill-remove" onclick="clearFile(event)" title="Remove">✕</button>
+    </div>
+    <div class="error" id="error-box"></div>
+    <button class="btn" id="analyze-btn" onclick="run()" disabled>Analyze PDF</button>
+  </div>
+
+  <!-- Loading -->
+  <div class="card" id="loading-card">
+    <div class="loading-inner">
+      <div class="spinner"></div>
+      <div class="loading-status" id="loading-status">Uploading PDF…</div>
+      <div class="loading-hint">Usually takes 10–20 seconds</div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results-section">
+    <div class="warn" id="trunc-warn">
+      ⚠️ This PDF is very long — only the first ~80,000 characters were analyzed.
+    </div>
+
+    <div class="result-card">
+      <div class="result-header">
+        <div class="result-badge badge-summary">📝</div>
+        <h2>Study Summary</h2>
+      </div>
+      <div id="summary-content"></div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-header">
+        <div class="result-badge badge-questions">✅</div>
+        <h2>5 Exam Questions</h2>
+      </div>
+      <div id="questions-content"></div>
+    </div>
+
+    <button class="btn btn-ghost" onclick="reset()">Analyze Another PDF</button>
+  </div>
+
+</div>
+<script>
+  let selectedFile = null;
+
+  const fileInput = document.getElementById('file-input');
+  const dropZone  = document.getElementById('drop-zone');
+
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) pickFile(e.target.files[0]); });
+
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('over'); });
+  dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('over');
+    const f = e.dataTransfer.files[0];
+    if (f?.type === 'application/pdf') pickFile(f);
+    else setError('Please drop a PDF file.');
+  });
+
+  function pickFile(f) {
+    selectedFile = f;
+    document.getElementById('file-pill-name').textContent = f.name;
+    document.getElementById('file-pill').classList.add('visible');
+    clearError();
+    document.getElementById('analyze-btn').disabled = false;
+  }
+
+  function clearFile(e) {
+    if (e) e.stopPropagation();
+    selectedFile = null;
+    fileInput.value = '';
+    document.getElementById('file-pill').classList.remove('visible');
+    document.getElementById('analyze-btn').disabled = true;
+  }
+
+  function setError(msg) {
+    const el = document.getElementById('error-box');
+    el.textContent = msg; el.style.display = 'block';
+  }
+  function clearError() { document.getElementById('error-box').style.display = 'none'; }
+  function setStatus(msg) { document.getElementById('loading-status').textContent = msg; }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function render({ bullets, questions }) {
+    document.getElementById('summary-content').innerHTML = bullets.length
+      ? '<ul>' + bullets.map(b => `<li>${esc(b)}</li>`).join('') + '</ul>'
+      : '<p style="color:var(--muted)">No summary available.</p>';
+
+    document.getElementById('questions-content').innerHTML = questions.length
+      ? questions.map((item, i) => `
+          <div class="q-item" onclick="this.classList.toggle('open')">
+            <div class="q-head">
+              <span class="q-num">${i + 1}</span>
+              <span class="q-text">${esc(item.q)}</span>
+              <span class="q-chevron">▼</span>
+            </div>
+            <div class="q-answer">${esc(item.a)}</div>
+          </div>`).join('')
+      : '<p style="color:var(--muted);font-size:.9rem">Could not parse questions.</p>';
+  }
+
+  async function run() {
+    if (!selectedFile) return;
+    clearError();
+
+    hide('upload-card');
+    show('loading-card');
+    setStatus('Uploading PDF…');
+
+    try {
+      const form = new FormData();
+      form.append('pdf', selectedFile);
+
+      setStatus('Analyzing with Claude…');
+      const res  = await fetch('/api/analyze', { method: 'POST', body: form });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+
+      render(data);
+      if (data.truncated) document.getElementById('trunc-warn').style.display = 'block';
+
+      hide('loading-card');
+      show('results-section');
+
+    } catch (err) {
+      hide('loading-card');
+      show('upload-card');
+      setError('Error: ' + err.message);
+    }
+  }
+
+  function reset() {
+    hide('results-section');
+    document.getElementById('trunc-warn').style.display = 'none';
+    document.getElementById('summary-content').innerHTML = '';
+    document.getElementById('questions-content').innerHTML = '';
+    clearFile();
+    show('upload-card');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function show(id) { document.getElementById(id).style.display = ''; }
+  function hide(id) { document.getElementById(id).style.display = 'none'; }
+</script>
+</body>
+</html>
