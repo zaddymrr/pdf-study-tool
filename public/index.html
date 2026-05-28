@@ -4,6 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PDF Study Tool</title>
+  <!-- MathJax — renders LaTeX math in study summaries and exam questions.
+       Config MUST come before the script tag. Enables $...$ inline math
+       (MathJax 3 defaults to \(...\) only). -->
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath:  [['$', '$'],   ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      options: {
+        skipHtmlTags: ['script','noscript','style','textarea','pre']
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -546,6 +561,15 @@
 
       render(data);
       if (data.truncated) document.getElementById('trunc-warn').style.display = 'block';
+
+      // Typeset any LaTeX in the summary and questions.
+      // Guard: MathJax loads async so it may not be ready on very fast responses.
+      if (window.MathJax?.typesetPromise) {
+        MathJax.typesetPromise([
+          document.getElementById('summary-content'),
+          document.getElementById('questions-content')
+        ]).catch(console.error);
+      }
 
       hide('loading-card');
       show('results-section');
