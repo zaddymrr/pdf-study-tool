@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to Pro — PDF Study Tool</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f9fafb; color: #111827; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 1rem; margin: 0;
+    }
+    .card {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 16px;
+      padding: 2.5rem 2rem; max-width: 440px; text-align: center;
+    }
+    .icon { font-size: 3rem; margin-bottom: 0.75rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    p { color: #6b7280; line-height: 1.55; margin-bottom: 1.5rem; }
+    .btn {
+      display: inline-block; padding: 0.75rem 1.5rem;
+      background: #4f46e5; color: #fff; border: none; border-radius: 10px;
+      font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none;
+    }
+    .btn:hover { background: #4338ca; }
+    .status { font-size: 0.85rem; color: #6b7280; margin-bottom: 1rem; }
+    .err { color: #dc2626; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="icon" id="icon">⏳</div>
+  <h1 id="title">Verifying your payment…</h1>
+  <p id="msg" class="status">Talking to Stripe. This takes a second.</p>
+  <a class="btn" href="/" id="cta" style="display:none">Start analyzing →</a>
+</div>
+
+<script>
+  (async () => {
+    const params = new URLSearchParams(location.search);
+    const sessionId = params.get('session_id');
+
+    if (!sessionId) {
+      document.getElementById('icon').textContent = '⚠️';
+      document.getElementById('title').textContent = 'Missing session';
+      document.getElementById('msg').textContent = 'No checkout session found in the URL.';
+      document.getElementById('msg').classList.add('err');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/verify-session?session_id=' + encodeURIComponent(sessionId));
+      const data = await res.json();
+      if (data.paid) {
+        localStorage.setItem('subscription_active', 'true');
+        if (data.customer_id) localStorage.setItem('stripe_customer_id', data.customer_id);
+        document.getElementById('icon').textContent = '🎉';
+        document.getElementById('title').textContent = 'Welcome to Pro!';
+        document.getElementById('msg').textContent = 'Your subscription is active. Enjoy unlimited PDF analyses.';
+        document.getElementById('cta').style.display = 'inline-block';
+      } else {
+        document.getElementById('icon').textContent = '⚠️';
+        document.getElementById('title').textContent = 'Payment not confirmed';
+        document.getElementById('msg').textContent = 'We could not verify the payment. If you were charged, contact support.';
+        document.getElementById('msg').classList.add('err');
+      }
+    } catch (err) {
+      document.getElementById('icon').textContent = '⚠️';
+      document.getElementById('title').textContent = 'Verification failed';
+      document.getElementById('msg').textContent = err.message;
+      document.getElementById('msg').classList.add('err');
+    }
+  })();
+</script>
+</body>
+</html>

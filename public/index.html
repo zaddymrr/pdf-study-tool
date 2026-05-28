@@ -202,6 +202,38 @@
       transition: background-color 0.25s, border-color 0.25s;
     }
     #theme-toggle:hover { border-color: var(--accent); }
+
+    /* ── Usage badge ── */
+    .usage-badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.25rem 0.65rem; margin-top: 0.5rem;
+      background: var(--accent-soft); border: 1px solid var(--accent-mid);
+      border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+      color: var(--accent-dark);
+    }
+    .usage-badge.pro { background: #dcfce7; border-color: #86efac; color: #166534; }
+    [data-theme="dark"] .usage-badge.pro { background: #052e16; border-color: #14532d; color: #4ade80; }
+
+    /* ── Paywall modal ── */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55); z-index: 200;
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-backdrop.visible { display: flex; }
+    .modal {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.75rem; max-width: 420px; width: 100%;
+      text-align: center;
+    }
+    .modal h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .modal p  { color: var(--muted); font-size: 0.9rem; line-height: 1.55; margin-bottom: 1.25rem; }
+    .modal .price {
+      font-size: 2rem; font-weight: 800; color: var(--text); margin-bottom: 0.25rem;
+    }
+    .modal .price small { font-size: 0.85rem; font-weight: 500; color: var(--muted); }
+    .modal-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+    .modal a.link { color: var(--muted); font-size: 0.8rem; text-decoration: underline; display: inline-block; margin-top: 0.5rem; }
   </style>
 </head>
 <body>
@@ -212,6 +244,7 @@
     <div class="logo">📚</div>
     <h1>PDF Study Tool</h1>
     <p class="subtitle">Upload a lecture PDF → instant summary + exam questions</p>
+    <div id="usage-badge" class="usage-badge" style="display:none"></div>
   </header>
 
   <!-- Upload -->
@@ -221,7 +254,7 @@
       <input type="file" id="file-input" accept="application/pdf" />
       <div class="drop-icon">📄</div>
       <div class="drop-primary">Drop your PDF here</div>
-      <div class="drop-hint">or click to browse &nbsp;·&nbsp; max 20 MB</div>
+      <div class="drop-hint">or click to browse &nbsp;·&nbsp; any size</div>
     </div>
     <div class="file-pill" id="file-pill">
       <span>📄</span>
@@ -266,9 +299,104 @@
     <button class="btn btn-ghost" onclick="reset()">Analyze Another PDF</button>
   </div>
 
+  <!-- Paywall modal -->
+  <div class="modal-backdrop" id="paywall">
+    <div class="modal">
+      <div style="font-size:2rem;margin-bottom:0.5rem">🔒</div>
+      <h2>You've used your 3 free analyses</h2>
+      <p>Upgrade to <strong>Pro</strong> for unlimited PDF analyses every month. Cancel anytime.</p>
+      <div class="price">€9.99 <small>/ month</small></div>
+      <div class="modal-actions">
+        <button class="btn" id="upgrade-btn" onclick="upgrade()">Upgrade to Pro</button>
+        <button class="btn btn-ghost" onclick="closePaywall()">Maybe later</button>
+        <a class="link" href="/pricing.html">See full pricing →</a>
+      </div>
+    </div>
+  </div>
+
 </div>
+<!-- pdf.js (Mozilla) — client-side PDF text extraction. v3 legacy build,
+     UMD-friendly, exposes window.pdfjsLib. Worker is required for parsing. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+</script>
 <script>
   let selectedFile = null;
+
+  // ── Freemium usage tracking (localStorage) ──
+  // NOTE: client-only tracking, bypassable via DevTools. v1 monetisation test.
+  // Move to server-side validation when this starts making money.
+  const FREE_LIMIT = 3;
+
+  function currentMonth() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function isSubscribed() {
+    return localStorage.getItem('subscription_active') === 'true';
+  }
+
+  function getUsage() {
+    const month = currentMonth();
+    const storedMonth = localStorage.getItem('usage_month');
+    if (storedMonth !== month) {
+      localStorage.setItem('usage_month', month);
+      localStorage.setItem('usage_count', '0');
+      return 0;
+    }
+    return parseInt(localStorage.getItem('usage_count') || '0', 10);
+  }
+
+  function incrementUsage() {
+    const next = getUsage() + 1;
+    localStorage.setItem('usage_count', String(next));
+    renderUsageBadge();
+  }
+
+  function renderUsageBadge() {
+    const el = document.getElementById('usage-badge');
+    if (isSubscribed()) {
+      el.className = 'usage-badge pro';
+      el.textContent = '✨ Pro — unlimited';
+      el.style.display = 'inline-flex';
+      return;
+    }
+    const used = getUsage();
+    const remaining = Math.max(0, FREE_LIMIT - used);
+    el.className = 'usage-badge';
+    el.textContent = `Free tier: ${remaining}/${FREE_LIMIT} analyses left this month`;
+    el.style.display = 'inline-flex';
+  }
+
+  function canAnalyze() {
+    if (isSubscribed()) return true;
+    return getUsage() < FREE_LIMIT;
+  }
+
+  // ── Paywall modal ──
+  function openPaywall()  { document.getElementById('paywall').classList.add('visible'); }
+  function closePaywall() { document.getElementById('paywall').classList.remove('visible'); }
+
+  async function upgrade() {
+    const btn = document.getElementById('upgrade-btn');
+    btn.disabled = true;
+    btn.textContent = 'Redirecting…';
+    try {
+      const res = await fetch('/api/create-checkout-session', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || 'Could not start checkout.');
+      window.location.href = data.url;
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Upgrade to Pro';
+      alert('Error: ' + err.message);
+    }
+  }
 
   const fileInput = document.getElementById('file-input');
   const dropZone  = document.getElementById('drop-zone');
@@ -284,6 +412,11 @@
     if (f?.type === 'application/pdf') pickFile(f);
     else setError('Please drop a PDF file.');
   });
+
+  // Soft cap on extracted text length sent to the server. The server
+  // truncates again as defense-in-depth, but this keeps payloads small
+  // and well under Vercel's 4.5 MB platform body limit.
+  const MAX_TEXT_CHARS = 80_000;
 
   function pickFile(f) {
     selectedFile = f;
@@ -332,23 +465,84 @@
       : '<p style="color:var(--muted);font-size:.9rem">Could not parse questions.</p>';
   }
 
+  // ── Client-side PDF text extraction via pdf.js ──
+  // Runs entirely in the browser; binary never crosses the network.
+  async function extractTextFromPdf(file, onProgress) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    const pageTexts = [];
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      if (onProgress) onProgress(pageNum, pdf.numPages);
+      const page    = await pdf.getPage(pageNum);
+      const content = await page.getTextContent();
+      // Reconstruct text with whitespace between items; pdf.js gives
+      // each text run separately, sometimes mid-word, so trust the
+      // built-in spacing more than collapsing aggressively.
+      const pageText = content.items.map(it => ('str' in it ? it.str : '')).join(' ');
+      pageTexts.push(pageText);
+    }
+    return { text: pageTexts.join('\n\n').trim(), pageCount: pdf.numPages };
+  }
+
   async function run() {
     if (!selectedFile) return;
     clearError();
 
+    // ── Freemium gate ──
+    if (!canAnalyze()) {
+      openPaywall();
+      return;
+    }
+
     hide('upload-card');
     show('loading-card');
-    setStatus('Uploading PDF…');
+    setStatus('Reading PDF in your browser…');
 
     try {
-      const form = new FormData();
-      form.append('pdf', selectedFile);
+      // 1. Extract text client-side
+      const { text: rawExtractedText, pageCount } = await extractTextFromPdf(
+        selectedFile,
+        (cur, total) => setStatus(`Reading page ${cur} of ${total}…`)
+      );
 
+      if (!rawExtractedText) {
+        throw new Error('No readable text in this PDF. It may be a scanned image with no text layer.');
+      }
+
+      // 2. Truncate client-side to keep payloads small
+      let text = rawExtractedText;
+      let clientTruncated = false;
+      if (text.length > MAX_TEXT_CHARS) {
+        text = text.slice(0, MAX_TEXT_CHARS);
+        clientTruncated = true;
+      }
+
+      // 3. POST extracted text as JSON
       setStatus('Analyzing with Groq…');
-      const res  = await fetch('/api/analyze', { method: 'POST', body: form });
-      const data = await res.json();
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, truncated: clientTruncated, pageCount }),
+      });
+
+      // Read as text first so we don't crash on non-JSON responses
+      // (e.g. Vercel platform errors, gateway timeouts, etc.)
+      const rawText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        if (res.status === 413 || /entity too large/i.test(rawText)) {
+          throw new Error('Extracted text is too large. Try a smaller PDF or section.');
+        }
+        throw new Error(`Server returned ${res.status}: ${rawText.slice(0, 200)}`);
+      }
 
       if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+
+      // Only count successful analyses against the limit.
+      if (!isSubscribed()) incrementUsage();
 
       render(data);
       if (data.truncated) document.getElementById('trunc-warn').style.display = 'block';
@@ -388,6 +582,9 @@
     applyTheme(!isDark);
   }
   applyTheme(localStorage.getItem('theme') === 'dark');
+
+  // ── Initial usage badge render ──
+  renderUsageBadge();
 </script>
 </body>
 </html>
