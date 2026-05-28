@@ -218,6 +218,14 @@
     }
     #theme-toggle:hover { border-color: var(--accent); }
 
+    /* ── Footer ── */
+    .site-footer {
+      text-align: center; padding: 2rem 0 1.5rem;
+      font-size: 0.8rem; color: var(--muted);
+    }
+    .site-footer a { color: var(--muted); text-decoration: underline; }
+    .site-footer a:hover { color: var(--accent); }
+
     /* ── Usage badge ── */
     .usage-badge {
       display: inline-flex; align-items: center; gap: 0.4rem;
@@ -313,6 +321,12 @@
 
     <button class="btn btn-ghost" onclick="reset()">Analyze Another PDF</button>
   </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <a href="/pricing.html">Pricing</a> &nbsp;·&nbsp;
+    <a href="/support.html">Support</a>
+  </footer>
 
   <!-- Paywall modal -->
   <div class="modal-backdrop" id="paywall">

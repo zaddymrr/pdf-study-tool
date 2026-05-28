@@ -4,6 +4,7 @@ const express = require('express');
 const Groq    = require('groq-sdk');
 const path    = require('path');
 const Stripe  = require('stripe');
+const { Resend } = require('resend');
 
 const app = express();
 
@@ -26,6 +27,22 @@ const APP_BASE_URL     = process.env.APP_BASE_URL || 'http://localhost:3000';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const MAX_CHARS = 80_000;
+
+// ── Resend (email) ──
+// Lazy init — server boots fine without RESEND_API_KEY; only /api/contact errors.
+let _resend = null;
+function getResend() {
+  if (_resend) return _resend;
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY not set. Add it to your .env / Vercel env vars.');
+  }
+  _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
+// Destination inbox for all support messages.
+// Set CONTACT_EMAIL in env; no hardcoded fallback so it's never accidentally
+// committed to a public repo.
+const CONTACT_EMAIL = process.env.CONTACT_EMAIL;
 
 // ──────────────────────────────────────────────────────────────
 // STRIPE WEBHOOK — must use raw body, MUST be mounted BEFORE
@@ -115,6 +132,66 @@ app.get('/api/verify-session', async (req, res) => {
     res.status(400).json({ paid: false, error: err.message });
   }
 });
+
+// ──────────────────────────────────────────────────────────────
+// POST /api/contact
+// Body: { email, subject, message }
+// Sends a support email via Resend and returns a success message.
+// ──────────────────────────────────────────────────────────────
+app.post('/api/contact', async (req, res) => {
+  const { email = '', subject = '', message = '' } = req.body || {};
+
+  // Validate
+  if (!email.trim() || !subject.trim() || !message.trim()) {
+    return res.status(400).json({ error: 'All fields are required.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return res.status(400).json({ error: 'Please enter a valid email address.' });
+  }
+  if (message.trim().length < 10) {
+    return res.status(400).json({ error: 'Message must be at least 10 characters.' });
+  }
+  if (!CONTACT_EMAIL) {
+    console.error('CONTACT_EMAIL env var not set — cannot deliver support message.');
+    return res.status(500).json({ error: 'Support inbox not configured. Please try again later.' });
+  }
+
+  try {
+    await getResend().emails.send({
+      // Until you verify a custom domain in Resend, use their sandbox address.
+      // After verifying e.g. pdf-study-tool.com, change to:
+      //   from: 'Support <support@pdf-study-tool.com>'
+      from: 'PDF Study Tool <onboarding@resend.dev>',
+      to:       [CONTACT_EMAIL],
+      replyTo:  email.trim(),
+      subject:  `[Support] ${subject.trim()}`,
+      html: `
+        <p><strong>From:</strong> ${esc(email)}</p>
+        <p><strong>Subject:</strong> ${esc(subject)}</p>
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0"/>
+        <div style="white-space:pre-wrap;font-family:sans-serif;font-size:15px;line-height:1.6">
+          ${esc(message)}
+        </div>
+      `,
+    });
+
+    res.json({
+      ok: true,
+      message: "Thanks for reaching out. We'll get back to you within 24 hours.",
+    });
+  } catch (err) {
+    console.error('Contact email error:', err);
+    res.status(500).json({ error: 'Failed to send your message. Please try again.' });
+  }
+});
+
+// HTML-escape helper (server-side, for email body only)
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    .replace(/\n/g, '<br>');
+}
 
 // ──────────────────────────────────────────────────────────────
 // POST /api/analyze

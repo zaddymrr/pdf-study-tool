@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support — PDF Study Tool</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #4f46e5; --accent-dark: #4338ca; --accent-soft: #eef2ff; --accent-mid: #c7d2fe;
+      --text: #111827; --muted: #6b7280; --border: #e5e7eb;
+      --bg: #f9fafb; --white: #ffffff;
+      --red: #dc2626; --red-soft: #fef2f2; --red-border: #fecaca;
+      --green: #16a34a; --green-soft: #f0fdf4; --green-border: #86efac;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a; --white: #1e293b; --text: #f1f5f9;
+      --muted: #94a3b8; --border: #334155; --accent-soft: #1e1b4b; --accent-mid: #3730a3;
+      --red-soft: #450a0a; --red-border: #7f1d1d; --red: #f87171;
+      --green-soft: #052e16; --green-border: #14532d; --green: #4ade80;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh; padding: 1rem;
+      transition: background-color 0.25s, color 0.25s;
+    }
+    .container { max-width: 560px; margin: 0 auto; }
+
+    header { text-align: center; padding: 2.5rem 0 2rem; }
+    .logo {
+      width: 52px; height: 52px; background: var(--accent); border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; margin: 0 auto 1rem;
+    }
+    h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 0.4rem; }
+    .subtitle { color: var(--muted); font-size: 0.95rem; }
+
+    .card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.75rem; margin-bottom: 1rem;
+    }
+
+    .field { margin-bottom: 1.125rem; }
+    label {
+      display: block; font-size: 0.8rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      color: var(--muted); margin-bottom: 0.4rem;
+    }
+    input, textarea {
+      width: 100%; padding: 0.625rem 0.875rem;
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.9375rem; font-family: inherit;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    input:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 130px; line-height: 1.6; }
+
+    .btn {
+      display: block; width: 100%; padding: 0.75rem; margin-top: 0.25rem;
+      background: var(--accent); color: #fff; border: none; border-radius: 10px;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn:hover:not(:disabled) { background: var(--accent-dark); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .alert {
+      display: none; padding: 0.75rem 0.9rem; border-radius: 8px;
+      font-size: 0.9rem; margin-bottom: 1rem;
+    }
+    .alert.error   { background: var(--red-soft);   border: 1px solid var(--red-border);   color: var(--red);   }
+    .alert.success { background: var(--green-soft);  border: 1px solid var(--green-border); color: var(--green); }
+    .alert.visible { display: block; }
+
+    .back-link {
+      display: block; text-align: center; margin-top: 1.25rem;
+      color: var(--muted); text-decoration: none; font-size: 0.875rem;
+    }
+    .back-link:hover { color: var(--accent); }
+
+    #theme-toggle {
+      position: fixed; top: 1rem; right: 1rem; z-index: 100;
+      width: 38px; height: 38px;
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 50%; cursor: pointer; font-size: 1.1rem;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      transition: background-color 0.25s, border-color 0.25s;
+    }
+    #theme-toggle:hover { border-color: var(--accent); }
+  </style>
+</head>
+<body>
+<button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
+<div class="container">
+
+  <header>
+    <a href="/" style="text-decoration:none">
+      <div class="logo">📚</div>
+    </a>
+    <h1>Support</h1>
+    <p class="subtitle">Got a question or ran into a problem? We'll get back to you within 24 hours.</p>
+  </header>
+
+  <div class="card">
+    <div class="alert" id="alert-box"></div>
+
+    <form id="support-form" novalidate>
+      <div class="field">
+        <label for="email">Your email</label>
+        <input
+          type="email" id="email" name="email"
+          placeholder="you@example.com" required autocomplete="email"
+        />
+      </div>
+
+      <div class="field">
+        <label for="subject">Subject</label>
+        <input
+          type="text" id="subject" name="subject"
+          placeholder="e.g. PDF not loading, billing question…" required
+        />
+      </div>
+
+      <div class="field">
+        <label for="message">Message</label>
+        <textarea
+          id="message" name="message"
+          placeholder="Describe your issue or question in as much detail as you like."
+          required
+        ></textarea>
+      </div>
+
+      <button class="btn" type="submit" id="submit-btn">Send message</button>
+    </form>
+  </div>
+
+  <a class="back-link" href="/">← Back to the tool</a>
+
+</div>
+<script>
+  const form      = document.getElementById('support-form');
+  const submitBtn = document.getElementById('submit-btn');
+  const alertBox  = document.getElementById('alert-box');
+
+  function showAlert(type, msg) {
+    alertBox.className = `alert ${type} visible`;
+    alertBox.textContent = msg;
+  }
+  function clearAlert() {
+    alertBox.className = 'alert';
+    alertBox.textContent = '';
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlert();
+
+    const email   = document.getElementById('email').value.trim();
+    const subject = document.getElementById('subject').value.trim();
+    const message = document.getElementById('message').value.trim();
+
+    if (!email || !subject || !message) {
+      showAlert('error', 'Please fill in all fields before submitting.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    try {
+      const res  = await fetch('/api/contact', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email, subject, message }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+
+      showAlert('success', data.message);
+      form.reset();
+      submitBtn.textContent = 'Sent ✓';
+    } catch (err) {
+      showAlert('error', err.message);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send message';
+    }
+  });
+
+  // ── Theme toggle (mirrors index.html) ──
+  const btn = document.getElementById('theme-toggle');
+  function applyTheme(dark) {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    btn.textContent = dark ? '☀️' : '🌙';
+  }
+  function toggleTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+    applyTheme(!isDark);
+  }
+  applyTheme(localStorage.getItem('theme') === 'dark');
+</script>
+</body>
+</html>
