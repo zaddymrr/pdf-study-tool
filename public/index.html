@@ -256,6 +256,13 @@
       font-size: 2rem; font-weight: 800; color: var(--text); margin-bottom: 0.25rem;
     }
     .modal .price small { font-size: 0.85rem; font-weight: 500; color: var(--muted); }
+    .modal .price .was { font-size: 1rem; font-weight: 500; color: var(--muted); text-decoration: line-through; margin-right: 0.3rem; }
+    .modal .discount-badge {
+      display: inline-block; padding: 0.2rem 0.6rem; margin-bottom: 0.75rem;
+      background: #fef3c7; border: 1px solid #fcd34d; border-radius: 999px;
+      font-size: 0.75rem; font-weight: 700; color: #92400e; letter-spacing: 0.03em;
+    }
+    [data-theme="dark"] .modal .discount-badge { background: #1c1003; border-color: #78350f; color: #fde68a; }
     .modal-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
     .modal a.link { color: var(--muted); font-size: 0.8rem; text-decoration: underline; display: inline-block; margin-top: 0.5rem; }
   </style>
@@ -335,7 +342,8 @@
       <div style="font-size:2rem;margin-bottom:0.5rem">🔒</div>
       <h2>You've used your 3 free analyses</h2>
       <p>Upgrade to <strong>Pro</strong> for unlimited PDF analyses every month. Cancel anytime.</p>
-      <div class="price">€9.99 <small>/ month</small></div>
+      <div class="discount-badge">🏷️ 50% OFF — Limited time</div>
+      <div class="price"><span class="was">€19.99</span>€9.99 <small>/ month</small></div>
       <div class="modal-actions">
         <button class="btn" id="upgrade-btn" onclick="upgrade()">Upgrade to Pro</button>
         <button class="btn btn-ghost" onclick="closePaywall()">Maybe later</button>
