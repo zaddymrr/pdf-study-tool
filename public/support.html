@@ -85,21 +85,9 @@
       color: var(--muted); text-decoration: none; font-size: 0.875rem;
     }
     .back-link:hover { color: var(--accent); }
-
-    #theme-toggle {
-      position: fixed; top: 1rem; right: 1rem; z-index: 100;
-      width: 38px; height: 38px;
-      background: var(--white); border: 1px solid var(--border);
-      border-radius: 50%; cursor: pointer; font-size: 1.1rem;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      transition: background-color 0.25s, border-color 0.25s;
-    }
-    #theme-toggle:hover { border-color: var(--accent); }
   </style>
 </head>
 <body>
-<button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
 <div class="container">
 
   <header>
@@ -196,18 +184,6 @@
     }
   });
 
-  // ── Theme toggle (mirrors index.html) ──
-  const btn = document.getElementById('theme-toggle');
-  function applyTheme(dark) {
-    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-    btn.textContent = dark ? '☀️' : '🌙';
-  }
-  function toggleTheme() {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    localStorage.setItem('theme', isDark ? 'light' : 'dark');
-    applyTheme(!isDark);
-  }
-  applyTheme(localStorage.getItem('theme') === 'dark');
 </script>
 </body>
 </html>
