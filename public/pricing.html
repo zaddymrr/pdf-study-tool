@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pricing — PDF Study Tool</title>
+  <script>
+    if (localStorage.getItem('theme') === 'dark')
+      document.documentElement.setAttribute('data-theme', 'dark');
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -12,10 +16,16 @@
       --text: #111827; --muted: #6b7280; --border: #e5e7eb;
       --bg: #f9fafb; --white: #ffffff;
     }
+    [data-theme="dark"] {
+      --bg: #0f172a; --white: #1e293b; --text: #f1f5f9;
+      --muted: #94a3b8; --border: #334155;
+      --accent-soft: #1e1b4b; --accent-mid: #3730a3;
+    }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg); color: var(--text); min-height: 100vh; padding: 1rem;
+      transition: background-color 0.25s, color 0.25s;
     }
     .container { max-width: 900px; margin: 0 auto; }
 
