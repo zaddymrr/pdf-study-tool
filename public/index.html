@@ -227,17 +227,6 @@
     .site-footer a { color: var(--muted); text-decoration: underline; }
     .site-footer a:hover { color: var(--accent); }
 
-    /* ── Usage badge ── */
-    .usage-badge {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      padding: 0.25rem 0.65rem; margin-top: 0.5rem;
-      background: var(--accent-soft); border: 1px solid var(--accent-mid);
-      border-radius: 999px; font-size: 0.75rem; font-weight: 600;
-      color: var(--accent-dark);
-    }
-    .usage-badge.pro { background: #dcfce7; border-color: #86efac; color: #166534; }
-    [data-theme="dark"] .usage-badge.pro { background: #052e16; border-color: #14532d; color: #4ade80; }
-
     /* ── Paywall modal ── */
     .modal-backdrop {
       display: none; position: fixed; inset: 0;
@@ -275,7 +264,6 @@
     <h1>PDF Study Tool</h1>
     <p class="subtitle">Upload a lecture PDF → instant summary + exam questions</p>
     <button id="theme-toggle" onclick="toggleTheme()">🌙 <span id="theme-label">Dark</span></button>
-    <div id="usage-badge" class="usage-badge" style="display:none"></div>
   </header>
 
   <!-- Upload -->
@@ -393,22 +381,6 @@
   function incrementUsage() {
     const next = getUsage() + 1;
     localStorage.setItem('usage_count', String(next));
-    renderUsageBadge();
-  }
-
-  function renderUsageBadge() {
-    const el = document.getElementById('usage-badge');
-    if (isSubscribed()) {
-      el.className = 'usage-badge pro';
-      el.textContent = '✨ Pro — unlimited';
-      el.style.display = 'inline-flex';
-      return;
-    }
-    const used = getUsage();
-    const remaining = Math.max(0, FREE_LIMIT - used);
-    el.className = 'usage-badge';
-    el.textContent = `Free tier: ${remaining}/${FREE_LIMIT} analyses left this month`;
-    el.style.display = 'inline-flex';
   }
 
   function canAnalyze() {
@@ -630,8 +602,6 @@
   }
   applyTheme(localStorage.getItem('theme') === 'dark');
 
-  // ── Initial usage badge render ──
-  renderUsageBadge();
 </script>
 </body>
 </html>
