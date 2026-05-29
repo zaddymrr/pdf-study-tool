@@ -231,7 +231,7 @@
     .tier-badge {
       display: inline-flex; align-items: center; gap: 0.35rem;
       padding: 0.25rem 0.7rem; margin-top: 0.5rem;
-      border-radius: 999px; font-size: 0.72rem; font-weight: 600;
+      border-radius: 999px; font-size: 0.78rem; font-weight: 600;
       letter-spacing: 0.02em;
     }
     .tier-badge.freemium {
@@ -283,7 +283,7 @@
     <div class="logo">📚</div>
     <h1>PDF Study Tool</h1>
     <p class="subtitle">Upload a lecture PDF → instant summary + exam questions</p>
-    <button id="theme-toggle" onclick="toggleTheme()">🌙 <span id="theme-label">Dark</span></button>
+    <button id="theme-toggle" onclick="toggleTheme()">🌙</button>
     <div id="tier-badge" class="tier-badge" style="display:none"></div>
   </header>
 
@@ -625,8 +625,7 @@
   // ── Theme toggle ──
   function applyTheme(dark) {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-    document.getElementById('theme-toggle').firstChild.textContent = dark ? '☀️ ' : '🌙 ';
-    document.getElementById('theme-label').textContent = dark ? 'Light' : 'Dark';
+    document.getElementById('theme-toggle').textContent = dark ? '☀️' : '🌙';
   }
   function toggleTheme() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
