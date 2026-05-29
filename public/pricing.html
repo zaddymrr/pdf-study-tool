@@ -40,11 +40,12 @@
 
     .tiers {
       display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;
+      align-items: stretch;
     }
     .tier {
       background: var(--white); border: 1px solid var(--border);
       border-radius: 16px; padding: 1.75rem; position: relative;
-      display: flex; flex-direction: column;
+      display: flex; flex-direction: column; height: 100%;
     }
     .tier.featured { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
     .tier-name { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.5rem; }
@@ -115,7 +116,7 @@
 
     <div class="tier">
       <div class="tier-name">Freemium</div>
-      <div class="tier-price" style="font-size:1.6rem;font-weight:700">Freemium</div>
+      <div class="tier-price">€0 <small>/ month</small></div>
       <div class="tier-tagline">For occasional use.</div>
       <ul class="features">
         <li>3 PDF analyses per month</li>
