@@ -63,6 +63,19 @@
     input:focus, textarea:focus { border-color: var(--accent); }
     textarea { resize: vertical; min-height: 130px; line-height: 1.6; }
 
+    input[type="file"] {
+      padding: 0.5rem 0.75rem; cursor: pointer;
+    }
+    input[type="file"]::file-selector-button {
+      background: var(--accent-soft); color: var(--accent);
+      border: 1px solid var(--accent-mid); border-radius: 6px;
+      padding: 0.25rem 0.75rem; margin-right: 0.75rem;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      transition: background 0.15s;
+    }
+    input[type="file"]::file-selector-button:hover { background: var(--accent-mid); }
+    .file-hint { font-size: 0.78rem; color: var(--muted); margin-top: 0.35rem; }
+
     .btn {
       display: block; width: 100%; padding: 0.75rem; margin-top: 0.25rem;
       background: var(--accent); color: #fff; border: none; border-radius: 10px;
@@ -112,10 +125,7 @@
 
       <div class="field">
         <label for="subject">Subject</label>
-        <input
-          type="text" id="subject" name="subject"
-          placeholder="e.g. PDF not loading, billing question…" required
-        />
+        <input type="text" id="subject" name="subject" required />
       </div>
 
       <div class="field">
@@ -125,6 +135,15 @@
           placeholder="Describe your issue or question in as much detail as you like."
           required
         ></textarea>
+      </div>
+
+      <div class="field">
+        <label for="attachment">Attachment (optional)</label>
+        <input
+          type="file" id="attachment" name="attachment"
+          accept=".jpg,.jpeg,.png,.pdf"
+        />
+        <p class="file-hint">JPG, PNG or PDF — max 5 MB</p>
       </div>
 
       <button class="btn" type="submit" id="submit-btn">Send message</button>
@@ -152,24 +171,33 @@
     e.preventDefault();
     clearAlert();
 
-    const email   = document.getElementById('email').value.trim();
-    const subject = document.getElementById('subject').value.trim();
-    const message = document.getElementById('message').value.trim();
+    const email      = document.getElementById('email').value.trim();
+    const subject    = document.getElementById('subject').value.trim();
+    const message    = document.getElementById('message').value.trim();
+    const fileInput  = document.getElementById('attachment');
+    const file       = fileInput.files[0] || null;
 
     if (!email || !subject || !message) {
       showAlert('error', 'Please fill in all fields before submitting.');
+      return;
+    }
+    if (file && file.size > 5 * 1024 * 1024) {
+      showAlert('error', 'Attachment must be under 5 MB.');
       return;
     }
 
     submitBtn.disabled = true;
     submitBtn.textContent = 'Sending…';
 
+    // Use FormData so multer can parse the file on the server
+    const formData = new FormData();
+    formData.append('email',   email);
+    formData.append('subject', subject);
+    formData.append('message', message);
+    if (file) formData.append('attachment', file);
+
     try {
-      const res  = await fetch('/api/contact', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ email, subject, message }),
-      });
+      const res  = await fetch('/api/contact', { method: 'POST', body: formData });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error || 'Something went wrong.');

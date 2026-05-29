@@ -4,7 +4,18 @@ const express = require('express');
 const Groq    = require('groq-sdk');
 const path    = require('path');
 const Stripe  = require('stripe');
+const multer  = require('multer');
 const { Resend } = require('resend');
+
+// ── Multer — memory storage for contact form attachments ──
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB cap
+  fileFilter: (_req, file, cb) => {
+    const ok = ['image/jpeg', 'image/png', 'application/pdf'];
+    cb(null, ok.includes(file.mimetype));
+  },
+});
 
 const app = express();
 
@@ -135,10 +146,10 @@ app.get('/api/verify-session', async (req, res) => {
 
 // ──────────────────────────────────────────────────────────────
 // POST /api/contact
-// Body: { email, subject, message }
-// Sends a support email via Resend and returns a success message.
+// multipart/form-data: { email, subject, message, attachment? }
+// Sends a support email via Resend, attaching the file if provided.
 // ──────────────────────────────────────────────────────────────
-app.post('/api/contact', async (req, res) => {
+app.post('/api/contact', upload.single('attachment'), async (req, res) => {
   const { email = '', subject = '', message = '' } = req.body || {};
 
   // Validate
@@ -156,25 +167,32 @@ app.post('/api/contact', async (req, res) => {
     return res.status(500).json({ error: 'Support inbox not configured. Please try again later.' });
   }
 
-  try {
-    await getResend().emails.send({
-      // Until you verify a custom domain in Resend, use their sandbox address.
-      // After verifying e.g. pdf-study-tool.com, change to:
-      //   from: 'Support <support@pdf-study-tool.com>'
-      from: 'PDF Study Tool <onboarding@resend.dev>',
-      to:       [CONTACT_EMAIL],
-      replyTo:  email.trim(),
-      subject:  `[Support] ${subject.trim()}`,
-      html: `
-        <p><strong>From:</strong> ${esc(email)}</p>
-        <p><strong>Subject:</strong> ${esc(subject)}</p>
-        <hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0"/>
-        <div style="white-space:pre-wrap;font-family:sans-serif;font-size:15px;line-height:1.6">
-          ${esc(message)}
-        </div>
-      `,
-    });
+  // Build Resend payload
+  const emailPayload = {
+    from:    'PDF Study Tool <onboarding@resend.dev>',
+    to:      [CONTACT_EMAIL],
+    replyTo: email.trim(),
+    subject: `[Support] ${subject.trim()}`,
+    html: `
+      <p><strong>From:</strong> ${esc(email)}</p>
+      <p><strong>Subject:</strong> ${esc(subject)}</p>
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0"/>
+      <div style="white-space:pre-wrap;font-family:sans-serif;font-size:15px;line-height:1.6">
+        ${esc(message)}
+      </div>
+    `,
+  };
 
+  // Attach file if provided
+  if (req.file) {
+    emailPayload.attachments = [{
+      filename: req.file.originalname,
+      content:  req.file.buffer,
+    }];
+  }
+
+  try {
+    await getResend().emails.send(emailPayload);
     res.json({
       ok: true,
       message: "Thanks for reaching out. We'll get back to you within 24 hours.",
