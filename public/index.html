@@ -350,7 +350,7 @@
     <div class="modal">
       <div style="font-size:2rem;margin-bottom:0.5rem">🔒</div>
       <h2>You've used your 3 free analyses</h2>
-      <p>Upgrade to <strong>Pro</strong> for unlimited PDF analyses every day. Cancel anytime.</p>
+      <p>Upgrade to <strong>Pro</strong> for unlimited PDF analyses every month. Cancel anytime.</p>
       <div class="discount-badge">🏷️ 50% OFF — Limited time</div>
       <div class="price"><span class="was">€19.99</span>€9.99 <small>/ month</small></div>
       <div class="modal-actions">
@@ -379,9 +379,9 @@
   // Move to server-side validation when this starts making money.
   const FREE_LIMIT = 3;
 
-  function currentDay() {
+  function currentMonth() {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
 
   function isSubscribed() {
@@ -389,9 +389,9 @@
   }
 
   function getUsage() {
-    const today = currentDay();
-    if (localStorage.getItem('usage_date') !== today) {
-      localStorage.setItem('usage_date', today);
+    const month = currentMonth();
+    if (localStorage.getItem('usage_month') !== month) {
+      localStorage.setItem('usage_month', month);
       localStorage.setItem('usage_count', '0');
       return 0;
     }
